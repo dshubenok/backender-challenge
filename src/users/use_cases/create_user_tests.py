@@ -22,11 +22,11 @@ def f_use_case() -> CreateUser:
 @pytest.fixture(autouse=True)
 def f_clean_up_event_log(f_ch_client: Client) -> None:
     f_ch_client.command(
-        f"TRUNCATE TABLE {settings.CLICKHOUSE_SCHEMA}.{settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}"
+        f"TRUNCATE TABLE {settings.CLICKHOUSE_SCHEMA}.{settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}",
     )
     yield
     f_ch_client.command(
-        f"TRUNCATE TABLE {settings.CLICKHOUSE_SCHEMA}.{settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}"
+        f"TRUNCATE TABLE {settings.CLICKHOUSE_SCHEMA}.{settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}",
     )
 
 
