@@ -30,6 +30,7 @@ INSTALLED_APPS = [
 
     # project apps
     'users',
+    'event_outbox',
 ]
 
 MIDDLEWARE = [
