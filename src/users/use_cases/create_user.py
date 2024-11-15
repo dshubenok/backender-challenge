@@ -1,13 +1,13 @@
 from typing import Any
 
 import structlog
+from django.conf import settings
+from django.db import transaction
 
 from core.base_model import Model
 from core.use_case import UseCase, UseCaseRequest, UseCaseResponse
-from users.models import User
 from event_outbox.models import EventOutbox
-from django.conf import settings
-from django.db import transaction
+from users.models import User
 
 logger = structlog.get_logger(__name__)
 

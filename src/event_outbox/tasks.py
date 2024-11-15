@@ -1,14 +1,17 @@
+import json
+
 import structlog
 from celery import shared_task
+
 from event_outbox.event_log_client import EventLogClient
 from event_outbox.models import EventOutbox
-from sentry_sdk import capture_exception
 
-logger = structlog.get_logger(__name__).bind(task='process_event_outbox')
+logger = structlog.get_logger(__name__)
 
 
 @shared_task
-def process_event_outbox():
+def process_event_outbox() -> None:
+    logger = structlog.get_logger(__name__).bind(task='process_event_outbox')
     logger.info("Starting task")
 
     events = list(EventOutbox.objects.all()[:1000])
@@ -22,7 +25,7 @@ def process_event_outbox():
             event.event_type,
             event.event_date_time,
             event.environment,
-            event.event_context,
+            json.dumps(event.event_context),
         )
         for event in events
     ]
@@ -31,11 +34,10 @@ def process_event_outbox():
         try:
             client.insert(data)
             EventOutbox.objects.filter(
-                id__in=[event.id for event in events]
+                id__in=[event.id for event in events],
             ).delete()
             logger.info("Successfully processed events", count=len(events))
         except Exception as e:
             logger.error("Failed to process event outbox", error=str(e))
-            capture_exception(e)
 
     logger.info("Completed process_event_outbox task")
