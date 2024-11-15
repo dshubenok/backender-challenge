@@ -1,15 +1,15 @@
-from celery import shared_task
-
-from event_outbox.models import EventOutbox
-from event_outbox.event_log_client import EventLogClient
 import structlog
+from celery import shared_task
+from event_outbox.event_log_client import EventLogClient
+from event_outbox.models import EventOutbox
+from sentry_sdk import capture_exception
 
-logger = structlog.get_logger(__name__)
+logger = structlog.get_logger(__name__).bind(task='process_event_outbox')
 
 
 @shared_task
 def process_event_outbox():
-    logger.info("Starting process_event_outbox task")
+    logger.info("Starting task")
 
     events = list(EventOutbox.objects.all()[:1000])
 
@@ -36,5 +36,6 @@ def process_event_outbox():
             logger.info("Successfully processed events", count=len(events))
         except Exception as e:
             logger.error("Failed to process event outbox", error=str(e))
+            capture_exception(e)
 
     logger.info("Completed process_event_outbox task")
