@@ -3,7 +3,7 @@ import json
 import structlog
 from celery import shared_task
 
-from event_outbox.event_log_client import EventLogClient
+from core.event_log_client import EventLogClient
 from event_outbox.models import EventOutbox
 
 logger = structlog.get_logger(__name__)
