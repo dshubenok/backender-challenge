@@ -27,11 +27,11 @@ class EventLogClient:
 
     @classmethod
     @contextmanager
-    def init(cls) -> Generator['EventLogClient']:
+    def init(cls) -> Generator['EventLogClient', None, None]:
         client = clickhouse_connect.get_client(
             host=settings.CLICKHOUSE_HOST,
             port=settings.CLICKHOUSE_PORT,
-            user=settings.CLICKHOUSE_USER,
+            username=settings.CLICKHOUSE_USER,
             password=settings.CLICKHOUSE_PASSWORD,
             query_retries=2,
             connect_timeout=30,
@@ -40,34 +40,38 @@ class EventLogClient:
         try:
             yield cls(client)
         except Exception as e:
-            logger.error('error while executing clickhouse query', error=str(e))
+            logger.error('Error while executing ClickHouse query', error=str(e))
+            raise
         finally:
             client.close()
 
-    def insert(
-        self,
-        data: list[Model],
-    ) -> None:
+    def insert(self, data: list[Model] | list[tuple[Any, ...]]) -> None:
+        if not data:
+            return
+
+        if isinstance(data[0], Model):
+            data = self._convert_data(data)
+
         try:
             self._client.insert(
-                data=self._convert_data(data),
+                table=f"{settings.CLICKHOUSE_SCHEMA}.{settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME}",
+                data=data,
                 column_names=EVENT_LOG_COLUMNS,
-                database=settings.CLICKHOUSE_SCHEMA,
-                table=settings.CLICKHOUSE_EVENT_LOG_TABLE_NAME,
             )
+            logger.info("Successfully inserted data into ClickHouse", count=len(data))
         except DatabaseError as e:
-            logger.error('unable to insert data to clickhouse', error=str(e))
+            logger.error('Unable to insert data into ClickHouse', error=str(e))
+            raise
 
-    def query(self, query: str) -> Any:  # noqa: ANN401
-        logger.debug('executing clickhouse query', query=query)
-
+    def query(self, query: str) -> list[tuple[Any, ...]]:
+        logger.debug('Executing ClickHouse query', query=query)
         try:
             return self._client.query(query).result_rows
         except DatabaseError as e:
-            logger.error('failed to execute clickhouse query', error=str(e))
-            return
+            logger.error('Failed to execute ClickHouse query', error=str(e))
+            return []
 
-    def _convert_data(self, data: list[Model]) -> list[tuple[Any]]:
+    def _convert_data(self, data: list[Model]) -> list[tuple[Any, ...]]:
         return [
             (
                 self._to_snake_case(event.__class__.__name__),
@@ -81,4 +85,3 @@ class EventLogClient:
     def _to_snake_case(self, event_name: str) -> str:
         result = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', event_name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', result).lower()
-
