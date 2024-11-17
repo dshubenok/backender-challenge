@@ -2,6 +2,9 @@ import clickhouse_connect
 import pytest
 from clickhouse_connect.driver import Client
 
+pytest_plugins = [
+    'celery.contrib.pytest',
+]
 
 @pytest.fixture(scope='module')
 def f_ch_client() -> Client:

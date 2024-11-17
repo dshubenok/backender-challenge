@@ -30,6 +30,7 @@ INSTALLED_APPS = [
 
     # project apps
     'users',
+    'event_outbox',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +78,10 @@ CLICKHOUSE_URI = (
     f'{CLICKHOUSE_PROTOCOL}'
 )
 CLICKHOUSE_EVENT_LOG_TABLE_NAME = 'event_log'
+
+CLICKHOUSE_BATCH_SIZE = env.int('CLICKHOUSE_BATCH_SIZE', default=1000)
+CLICKHOUSE_MAX_RETRIES = env.int('CLICKHOUSE_MAX_RETRIES', default=3)
+CLICKHOUSE_RETRY_DELAY = env.int('CLICKHOUSE_RETRY_DELAY', default=60)
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -184,3 +189,17 @@ if SENTRY_SETTINGS.get("dsn") and not DEBUG:
         ],
         default_integrations=False,
     )
+
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_BROKER', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+    'process_event_outbox': {
+        'task': 'event_outbox.tasks.process_event_outbox',
+        'schedule': env.int('EVENT_PROCESSING_INTERVAL', default=60),
+    },
+}
