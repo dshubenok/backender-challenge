@@ -3,6 +3,7 @@ from typing import Any
 import structlog
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from core.base_model import Model
 from core.use_case import UseCase, UseCaseRequest, UseCaseResponse
@@ -64,6 +65,8 @@ class CreateUser(UseCase):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'created_at': timezone.now().isoformat(),
+                'user_id': str(user.id),
             },
             metadata_version=1,
         )
